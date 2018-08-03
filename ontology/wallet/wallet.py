@@ -31,10 +31,10 @@ class WalletData(object):
         self.accounts.append(acc)
 
     def remove_account(self, address: str):
-        account, index = self.get_account_by_address(address)
-        if index == -1:
-            return
-        del self.accounts[index]
+        account = self.get_account_by_address(address)
+        if account is None:
+            raise Exception("no the account")
+        return self.accounts.remove(account)
 
     def get_account_by_index(self, index: int):
         if index < 0 or index >= len(self.accounts):
@@ -44,10 +44,13 @@ class WalletData(object):
     def get_account_by_address(self, address: str):
         for index in range(len(self.accounts)):
             if self.accounts[index].address == address:
-                return self.accounts[index], index
-        return None, -1
+                return self.accounts[index]
+        return None
 
     def add_identity(self, id: Identity):
+        for identity in self.identities:
+            if identity.ontid == id.ontid:
+                raise Exception("")
         self.identities.append(id)
 
     def remove_identity(self, ontid):
@@ -55,3 +58,9 @@ class WalletData(object):
             if self.identities[index].ontid == ontid:
                 del self.identities[index]
                 break
+
+    def get_identity_by_ontid(self, ontid: str):
+        for identity in self.identities:
+            if identity.ontid == ontid:
+                return identity
+        return None
