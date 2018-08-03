@@ -1,8 +1,10 @@
+import threading
+
 from ontology.account.account import Account
 from ontology.core.sig import Sig
 from ontology.core.transaction import Transaction
+from ontology.crypto.signature_scheme import SignatureScheme
 from ontology.smart_contract.native_vm import NativeVm
-from ontology.utils import util
 from ontology.wallet.wallet_manager import WalletManager
 from ontology.rpc.rpc import RpcClient
 from ontology.common import define as Common
@@ -10,10 +12,39 @@ from ontology.core.program import ProgramBuilder
 
 
 class OntologySdk(object):
+    _instance_lock = threading.Lock()
+
     def __init__(self):
-        self.rpc_client = RpcClient()
+        self.rpc = RpcClient()
         self.wallet_manager = WalletManager()
-        self.native_vm = NativeVm()
+        self.__native_vm = None
+        self.defaultSignScheme = SignatureScheme.SHA256withECDSA
+
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(OntologySdk, "_instance"):
+            with OntologySdk._instance_lock:
+                if not hasattr(OntologySdk, "_instance"):
+                    OntologySdk._instance = object.__new__(cls)
+        return OntologySdk._instance
+
+    def native_vm(self):
+        if self.__native_vm is None:
+            self.__native_vm = NativeVm(OntologySdk())
+        return self.__native_vm
+
+    def get_wallet_manager(self):
+        if self.wallet_manager is None:
+            self.wallet_manager = WalletManager()
+        return self.wallet_manager
+
+    def get_rpc(self):
+        if self.rpc is None:
+            self.rpc = RpcClient()
+        return self.rpc
+
+    def set_signaturescheme(self, scheme: SignatureScheme):
+        self.defaultSignScheme = scheme
+        self.wallet_manager.set_signature_scheme(scheme)
 
     def sign_transaction(self, tx: Transaction, signer: Account):
         tx_hash = tx.hash256()
@@ -54,16 +85,6 @@ class OntologySdk(object):
         sig = Sig(pubkeys, m, [sig_data])
         tx.sigs.append(sig)
         return tx
-
-    def open_or_create_wallet(self, wallet_file):
-        if util.is_file_exist(wallet_file):
-            return self.open_wallet(wallet_file)
-        return self.create_wallet(wallet_file)
-
-    def create_wallet(self, wallet_file):
-        if util.is_file_exist(wallet_file):
-            raise IsADirectoryError("wallet file has already exist")
-        return self.wallet_manager.open_wallet(wallet_file)
 
     def open_wallet(self, wallet_file):
         return self.wallet_manager.open_wallet(wallet_file)

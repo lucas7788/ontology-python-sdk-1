@@ -1,15 +1,10 @@
 import requests
 from ontology.rpc.define import *
 import json
-from ontology.core.sig import Sig
 from ontology.core.transaction import Transaction
-from ontology.account.account import Account
-from ontology.crypto.signature_scheme import SignatureScheme
 from ontology.common.address import Address
+from ontology.rpc.define import rpc_address
 from ontology.utils.util import get_asset_address
-
-rpc_address = "http://polaris3.ont.io:20336"
-rest_address = "http://polaris1.ont.io:20334"
 
 
 class HttpRequest(object):
@@ -31,7 +26,7 @@ class HttpRequest(object):
 
 
 class RpcClient(object):
-    def __init__(self, qid=0, addr=""):
+    def __init__(self, qid=0, addr=rpc_address):
         self.qid = qid
         self.addr = addr
 
@@ -128,12 +123,6 @@ class RpcClient(object):
         res = json.loads(r.content.decode())["result"]
         return res
 
-    def get_generate_block_time(self):
-        rpc_struct = self.set_json_rpc_version(RPC_GET_GENERATE_BLOCK_TIME)
-        r = HttpRequest.request("post", self.addr, rpc_struct)
-        res = json.loads(r.content.decode())["result"]
-        return res
-
     def get_merkle_proof(self, tx_hash):
         rpc_struct = self.set_json_rpc_version(RPC_GET_MERKLE_PROOF, [tx_hash, 1])
         r = HttpRequest.request("post", self.addr, rpc_struct)
@@ -154,9 +143,10 @@ class RpcClient(object):
         rpc_struct = self.set_json_rpc_version(RPC_SEND_TRANSACTION, [tx_data, 1])
         r = HttpRequest.request("post", self.addr, rpc_struct)
         res = json.loads(r.content.decode())
+        #print(res)
         err = res["error"]
         if err > 0:
-            raise RuntimeError
+            raise RuntimeError("error > 0")
         if res["result"]["State"] == 0:
-            raise RuntimeError
+            raise RuntimeError("State = 0")
         return res["result"]["Result"]

@@ -34,5 +34,4 @@ class KeyType(Enum):
         else:
             return KeyType.from_label(pubkey[0])
 
-    
 
